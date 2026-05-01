@@ -36,6 +36,21 @@
  * by enforcement, and the marketing value is in honest play anyway.
  */
 
+// Minimal Pages Functions context type. We define this inline rather than
+// pulling in @cloudflare/workers-types so the project stays zero-build —
+// no node_modules needed for `wrangler pages deploy` to work.
+interface PagesFunctionContext<E> {
+    request: Request;
+    env: E;
+    waitUntil(promise: Promise<unknown>): void;
+    next(input?: Request | string, init?: RequestInit): Promise<Response>;
+    params: Record<string, string | string[]>;
+    data: Record<string, unknown>;
+}
+type PagesFunction<E = unknown> = (
+    ctx: PagesFunctionContext<E>
+) => Response | Promise<Response>;
+
 type TileColor = 'correct' | 'present' | 'absent';
 
 interface HistoryTurn {

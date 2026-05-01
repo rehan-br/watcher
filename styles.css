@@ -434,11 +434,11 @@ nav {
 /* Confirm bar (sits below the grid while a row is active) */
 .confirm-bar {
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .7rem;
+    gap: .8rem;
     margin-top: .5rem;
 }
 .confirm-hint {
@@ -448,7 +448,52 @@ nav {
     font-style: italic;
     font-family: var(--font-display);
     font-size: 1rem;
+    line-height: 1.4;
 }
+.legend-cycle {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-style: normal;
+    vertical-align: middle;
+    margin-left: .15rem;
+}
+.legend-cycle .swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+}
+
+/* Tile legend — the persistent colour key shown alongside each active row */
+.tile-legend {
+    list-style: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .7rem .9rem;
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 12px;
+    font-size: .82rem;
+    color: var(--ink);
+}
+.tile-legend li {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+}
+.swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+.swatch-correct { background: var(--tile-correct); }
+.swatch-present { background: var(--tile-present); }
+.swatch-absent  { background: var(--tile-absent); }
 
 /* ---------- Notebook panel ---------- */
 .notebook {
