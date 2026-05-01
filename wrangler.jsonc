@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "watcher",
+  "compatibility_date": "2025-09-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": ".",
+  "observability": {
+    "enabled": true
+  }
+
+  // Required env vars (set via Cloudflare dashboard → Pages → Settings → Variables):
+  //
+  //   GEMINI_API_KEY        — Google AI Studio key (encrypted)
+  //   WATCHER_HMAC_SECRET   — random 32+ byte string (encrypted). Used to
+  //                           sign every model-issued guess. If you rotate
+  //                           this, in-flight games break — rotate during
+  //                           low traffic.
+  //
+  // Optional:
+  //   LLM_PROVIDER          — "gemini" (default) or "cloudflare"
+  //   GEMINI_MODEL          — override the default "gemini-2.5-flash"
+  //
+  // For local dev with `wrangler pages dev`, copy .dev.vars.example to
+  // .dev.vars and fill in real values. .dev.vars is gitignored.
+}

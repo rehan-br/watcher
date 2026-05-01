@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watcher &mdash; Reverse Wordle. Watch the AI think.</title>
+    <meta name="description" content="You pick a 5-letter word. Watcher tries to guess it, and you read its full reasoning live in the margin. A reverse-Wordle lab from The Developer Guys.">
+    <link rel="canonical" href="https://watcher.thedeveloperguys.com/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://watcher.thedeveloperguys.com/">
+    <meta property="og:title" content="Watcher &mdash; Reverse Wordle. Watch the AI think.">
+    <meta property="og:description" content="You pick a 5-letter word. The AI tries to guess it, and you read its reasoning live.">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Watcher &mdash; Reverse Wordle. Watch the AI think.">
+    <meta name="twitter:description" content="You pick a 5-letter word. The AI tries to guess it. You read its reasoning live.">
+
+    <link rel="icon" type="image/jpeg" href="https://thedeveloperguys.com/images/logo.jpg">
+
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme');
+            if (!t) t = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav>
+    <a href="https://thedeveloperguys.com" class="nav-logo">
+        <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </span>
+        <span class="nav-name">Watcher</span>
+    </a>
+
+    <div class="nav-right">
+        <a href="https://fun.thedeveloperguys.com" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Back to labs
+        </a>
+        <button class="icon-btn" id="howToBtn" aria-label="How it works" title="How it works">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+            <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+    </div>
+</nav>
+
+<main>
+    <section class="hero">
+        <div class="hero-eyebrow">
+            <span class="eyebrow-line"></span>
+            Lab 03 &middot; Reverse Wordle
+        </div>
+        <h1>Watch the AI <em>think.</em></h1>
+        <p class="hero-sub">
+            You pick a five-letter word. <em>Watcher</em> tries to guess it,
+            and you read its full reasoning live in the margin alongside the
+            grid. Confirm the tile colours after each guess. Repeat until
+            it cracks the word.
+        </p>
+    </section>
+
+    <!-- Phase 1: word entry -->
+    <section class="entry-wrap" id="entryPanel">
+        <form class="entry-card" id="entryForm" autocomplete="off" novalidate>
+            <label for="secretInput" class="entry-label">
+                <span class="entry-eyebrow">Step 1</span>
+                Pick a 5-letter word
+            </label>
+            <div class="entry-row">
+                <input type="text" id="secretInput" maxlength="5" minlength="5"
+                       inputmode="latin" autocapitalize="characters" spellcheck="false"
+                       placeholder="e.g. PARTY" pattern="[A-Za-z]{5}" required>
+                <button type="submit" class="btn btn-fill" id="entrySubmit">
+                    Start
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
+            <p class="entry-hint">
+                Your word stays in your browser. Watcher only ever sees its
+                own past guesses and the tile colours you confirm.
+            </p>
+        </form>
+    </section>
+
+    <!-- Phase 2: game (grid + notebook) -->
+    <section class="game-wrap" id="gamePanel" hidden>
+        <div class="game-grid">
+
+            <div class="grid-col">
+                <div class="grid-meta">
+                    <div class="grid-secret">
+                        Your word
+                        <strong id="secretDisplay">&mdash;</strong>
+                        <button type="button" class="grid-reset" id="resetBtn"
+                                aria-label="Pick a different word">Reset</button>
+                    </div>
+                    <div class="grid-turn" id="turnIndicator">Guess 1 of 6</div>
+                </div>
+
+                <div class="board" id="board" aria-label="Watcher's guesses"></div>
+
+                <div class="confirm-bar" id="confirmBar" hidden>
+                    <p class="confirm-hint">
+                        Tap each tile to set its colour, then confirm.
+                    </p>
+                    <button type="button" class="btn btn-fill" id="confirmBtn">
+                        Confirm colours
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <aside class="notebook" aria-label="Watcher's notebook">
+                <div class="notebook-head">
+                    <span class="notebook-dot"></span>
+                    <span class="notebook-title">Watcher's notebook</span>
+                </div>
+                <div class="notebook-body" id="notebook">
+                    <p class="notebook-placeholder">
+                        Waiting for the first guess&hellip;
+                    </p>
+                </div>
+            </aside>
+
+        </div>
+    </section>
+</main>
+
+<!-- How it works modal -->
+<div class="modal" id="howToModal" hidden>
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="howToTitle">
+        <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+        <h2 id="howToTitle">How <em>Watcher</em> works</h2>
+        <p>Pick a 5-letter word in your head &mdash; or type it in. The AI
+            takes six guesses to crack it. After each guess, you set the tile
+            colours yourself:</p>
+        <div class="how-tiles">
+            <span class="tile mini state-correct">A</span>
+            <span class="tile-label">in your word, in the right place</span>
+        </div>
+        <div class="how-tiles">
+            <span class="tile mini state-present">B</span>
+            <span class="tile-label">in your word, wrong place</span>
+        </div>
+        <div class="how-tiles">
+            <span class="tile mini state-absent">C</span>
+            <span class="tile-label">not in your word</span>
+        </div>
+        <p class="how-twist"><em>The page is the AI's notebook.</em> The
+            panel on the right shows the model's full reasoning &mdash; what
+            letters it has ruled in, ruled out, and why it picked the next
+            word. No fake typing animations. Honest latency.</p>
+        <p class="how-foot">Powered by Gemini 2.5 Flash via the Google AI
+            Studio API. The model never sees your secret word &mdash; only
+            its own prior guesses and the colours you confirmed.</p>
+    </div>
+</div>
+
+<!-- End-of-game modal -->
+<div class="modal" id="endModal" hidden>
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+        <button class="modal-close" data-close="1" aria-label="Close">&times;</button>
+        <h2 id="endTitle"></h2>
+        <p class="end-answer">Your word was <strong id="endAnswer">&mdash;</strong>.</p>
+        <p class="end-blurb" id="endBlurb"></p>
+        <div class="end-actions">
+            <button type="button" class="btn btn-fill" id="playAgainBtn">
+                Play again
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+            <a class="btn btn-outline" href="https://fun.thedeveloperguys.com">More labs</a>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<footer>
+    <div class="footer-inner">
+        <span class="footer-copy">A lab from <a href="https://thedeveloperguys.com">The Developer Guys</a>.</span>
+        <div class="footer-links">
+            <a href="https://fun.thedeveloperguys.com">More labs</a>
+            <a href="https://thedeveloperguys.com#contact">Hire us</a>
+        </div>
+    </div>
+</footer>
+
+<script src="js/app.js"></script>
+
+</body>
+</html>

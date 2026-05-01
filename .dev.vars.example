@@ -1,0 +1,15 @@
+# Copy to .dev.vars and fill in real values for `wrangler pages dev`.
+# .dev.vars is gitignored.
+
+# Gemini (default provider). Get a key at https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your-key-here
+
+# 32+ random bytes. Generate one with:
+#   openssl rand -hex 32
+# or, on Windows PowerShell:
+#   -join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
+WATCHER_HMAC_SECRET=replace-with-a-long-random-hex-string
+
+# Optional overrides
+# LLM_PROVIDER=gemini
+# GEMINI_MODEL=gemini-2.5-flash
