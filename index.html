@@ -118,34 +118,17 @@
                 <div class="board" id="board" aria-label="Watcher's guesses"></div>
 
                 <div class="confirm-bar" id="confirmBar" hidden>
-                    <ul class="tile-legend" aria-label="Tile colour key">
-                        <li>
-                            <span class="swatch swatch-correct"></span>
-                            <span class="legend-text">
-                                <strong>Right letter, right spot</strong>
-                                <em>(in your word at this exact position)</em>
-                            </span>
-                        </li>
-                        <li>
-                            <span class="swatch swatch-present"></span>
-                            <span class="legend-text">
-                                <strong>Right letter, wrong spot</strong>
-                                <em>(in your word but somewhere else)</em>
-                            </span>
-                        </li>
-                        <li>
-                            <span class="swatch swatch-absent"></span>
-                            <span class="legend-text">
-                                <strong>Not in your word</strong>
-                                <em>(letter doesn't appear at all)</em>
-                            </span>
-                        </li>
-                    </ul>
                     <p class="confirm-hint">
-                        The tiles above are already set to the correct colours for your word
-                        &mdash; just hit <em>Confirm</em>. Want to lie to the AI? Tap any
-                        tile to cycle its colour.
+                        Colours are pre-filled from your word. Tap a tile to override (cycles
+                        <span class="legend-cycle"><span class="swatch swatch-absent"></span>
+                        &rarr; <span class="swatch swatch-present"></span> &rarr;
+                        <span class="swatch swatch-correct"></span></span>).
                     </p>
+                    <ul class="tile-legend" aria-label="Tile colour key">
+                        <li><span class="swatch swatch-correct"></span><span>In your word, right place</span></li>
+                        <li><span class="swatch swatch-present"></span><span>In your word, wrong place</span></li>
+                        <li><span class="swatch swatch-absent"></span><span>Not in your word</span></li>
+                    </ul>
                     <button type="button" class="btn btn-fill" id="confirmBtn">
                         Confirm colours
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
