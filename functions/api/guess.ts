@@ -192,7 +192,24 @@ async function generateWithCloudflare(
 
 // ---------------------------------------------------------------------
 // Provider dispatch
+//
+// Default flow: try Gemini first, fall back to Workers AI on errors that
+// indicate Gemini just isn't available (region block, quota exhaustion,
+// transient 5xx). For JSON-parse failures we still retry against the
+// same provider in `strict` mode — that's the model's own slip-up, not
+// an availability issue.
 // ---------------------------------------------------------------------
+function isProviderAvailabilityError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    const m = err.message;
+    // Region block, quota, throttling, transient 5xx — anything that
+    // suggests trying a different provider is worthwhile.
+    return /\b(400|403|429|5\d\d)\b/.test(m) ||
+        /User location is not supported/i.test(m) ||
+        /quota/i.test(m) ||
+        /rate limit/i.test(m);
+}
+
 async function generate(
     history: HistoryTurn[],
     env: Env,
@@ -202,7 +219,16 @@ async function generate(
     if (provider === 'cloudflare' || provider === 'workers-ai') {
         return generateWithCloudflare(history, env, strict);
     }
-    return generateWithGemini(history, env, strict);
+    // Default: Gemini first, with a Workers-AI safety net.
+    try {
+        return await generateWithGemini(history, env, strict);
+    } catch (err) {
+        if (isProviderAvailabilityError(err) && env.AI) {
+            console.warn('[watcher] gemini unavailable, falling back to Workers AI:', err);
+            return generateWithCloudflare(history, env, strict);
+        }
+        throw err;
+    }
 }
 
 // ---------------------------------------------------------------------

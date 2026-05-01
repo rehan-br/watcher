@@ -6,6 +6,9 @@
   "pages_build_output_dir": ".",
   "observability": {
     "enabled": true
+  },
+  "ai": {
+    "binding": "AI"
   }
 
   // Required env vars (set via Cloudflare dashboard → Pages → Settings → Variables):
