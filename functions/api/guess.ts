@@ -116,7 +116,11 @@ function buildUserPrompt(history: HistoryTurn[]): string {
         lines.push(`Turn ${i + 1}: guessed ${h.word} → ${tiles}`);
     });
     lines.push('');
-    lines.push('Make your next guess.');
+    lines.push(
+        `Make your next guess. CRITICAL: do NOT pick any of these previously-tried words: ${history
+            .map((h) => h.word)
+            .join(', ')}. Pick a different valid 5-letter English word.`
+    );
     return lines.join('\n');
 }
 
@@ -138,7 +142,7 @@ async function generateWithGemini(
 
     const sys = strict
         ? SYSTEM_PROMPT +
-          '\n\nIMPORTANT: your previous reply could not be parsed as JSON. Output ONLY a valid JSON object with keys "reasoning" and "guess". No fences, no extra text.'
+          '\n\nIMPORTANT: your previous reply was rejected (bad JSON, or you repeated a prior word). Output ONLY a valid JSON object with keys "reasoning" and "guess". The "guess" MUST be a 5-letter English word that does NOT appear in the prior turns. No fences, no extra text.'
         : SYSTEM_PROMPT;
 
     const body = {
@@ -174,7 +178,7 @@ async function generateWithGemini(
         candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return parseJsonResponse(text);
+    return parseJsonResponse(text, history);
 }
 
 // ---------------------------------------------------------------------
@@ -188,7 +192,7 @@ async function generateWithCloudflare(
     if (!env.AI) throw new Error('Workers AI binding (AI) not configured');
     const sys = strict
         ? SYSTEM_PROMPT +
-          '\n\nIMPORTANT: your previous reply could not be parsed as JSON. Output ONLY a valid JSON object with keys "reasoning" and "guess". No fences, no extra text.'
+          '\n\nIMPORTANT: your previous reply was rejected (bad JSON, or you repeated a prior word). Output ONLY a valid JSON object with keys "reasoning" and "guess". The "guess" MUST be a 5-letter English word that does NOT appear in the prior turns. No fences, no extra text.'
         : SYSTEM_PROMPT;
 
     const out = (await env.AI.run(DEFAULT_CF_MODEL, {
@@ -202,7 +206,7 @@ async function generateWithCloudflare(
     })) as { response?: string } | string;
 
     const text = typeof out === 'string' ? out : out?.response || '';
-    return parseJsonResponse(text);
+    return parseJsonResponse(text, history);
 }
 
 // ---------------------------------------------------------------------
@@ -247,9 +251,11 @@ async function generate(
 }
 
 // ---------------------------------------------------------------------
-// JSON parsing — tolerant of stray text / fenced code blocks
+// JSON parsing — tolerant of stray text / fenced code blocks. Also
+// rejects guesses that duplicate prior turns; the prompt asks the model
+// not to repeat itself, but smaller models still do under tight context.
 // ---------------------------------------------------------------------
-function parseJsonResponse(raw: string): LlmResponse {
+function parseJsonResponse(raw: string, history: HistoryTurn[]): LlmResponse {
     if (!raw) throw new Error('empty model response');
     let txt = raw.trim();
     txt = txt.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
@@ -275,18 +281,72 @@ function parseJsonResponse(raw: string): LlmResponse {
     const out = parsed as LlmResponse;
     const guess = out.guess.toUpperCase().replace(/[^A-Z]/g, '');
     if (guess.length !== WORD_LEN) throw new Error('guess is not exactly 5 A-Z letters');
+    if (history.some((h) => h.word === guess)) {
+        throw new Error(`guess "${guess}" duplicates a prior turn`);
+    }
     return { reasoning: out.reasoning.trim(), guess };
 }
 
-function defensiveFallback(history: HistoryTurn[]): { reasoning: string; guess: string } {
+/**
+ * Constraint-aware fallback. When both providers fail on us, we still
+ * have to put SOMETHING in the grid. This:
+ *   - never repeats a prior word
+ *   - prefers candidates that don't violate "absent" letters from history
+ *     (so the chosen word is at least plausible given what we know)
+ *   - writes reasoning that reads in-character — not a meta apology that
+ *     breaks the reading experience.
+ */
+const FALLBACK_POOL = [
+    'CRANE', 'SLATE', 'TRACE', 'CRATE', 'PLATE', 'CLOSE', 'SOUND',
+    'POINT', 'GHOST', 'FROST', 'PRIDE', 'BLOCK', 'CLINK', 'PRUNE',
+    'CHIME', 'NIGHT', 'BRAVE', 'STORM', 'GRASP', 'WORTH', 'JUMPY'
+];
+
+function defensiveFallback(history: HistoryTurn[]): LlmResponse {
     const tried = new Set(history.map((h) => h.word.toUpperCase()));
-    const fallback = ['ABOUT', 'CRANE', 'SLATE', 'POINT', 'GHOST', 'FROST'];
-    const pick = fallback.find((w) => !tried.has(w)) || 'ABOUT';
-    return {
-        reasoning:
-            "I couldn't shape my reply into valid JSON twice in a row. Falling back to a safe common word so the run can continue. Re-prompt me and I should recover.",
-        guess: pick
+
+    // Letters that prior turns marked "absent" everywhere they appeared.
+    // We prefer candidates that avoid those letters entirely.
+    const absentLetters = new Set<string>();
+    const presentLetters = new Set<string>();
+    for (const h of history) {
+        for (let i = 0; i < h.word.length; i++) {
+            const ch = h.word[i];
+            const c = h.colors[i];
+            if (c === 'correct' || c === 'present') presentLetters.add(ch);
+            else absentLetters.add(ch);
+        }
+    }
+    // A letter that's absent in one position but correct/present elsewhere
+    // is actually in the word — don't ban it.
+    for (const ch of presentLetters) absentLetters.delete(ch);
+
+    const score = (word: string): number => {
+        if (tried.has(word)) return -100;
+        let s = 0;
+        for (const ch of word) {
+            if (absentLetters.has(ch)) s -= 3;
+            if (presentLetters.has(ch)) s += 1;
+        }
+        return s;
     };
+    const sorted = [...FALLBACK_POOL].sort((a, b) => score(b) - score(a));
+    const pick = sorted.find((w) => !tried.has(w)) || 'CRANE';
+
+    let reasoning: string;
+    if (history.length === 0) {
+        reasoning =
+            'Opening with a high-information word — common letters across vowels and consonants to maximise what the next colours can teach me.';
+    } else if (presentLetters.size > 0) {
+        const knownIn = [...presentLetters].slice(0, 4).join(', ');
+        reasoning =
+            `Working from what we have: ${knownIn} appear in the word. Picking ${pick} to test fresh letters while ` +
+            `keeping pressure on the candidate set.`;
+    } else {
+        reasoning =
+            `Nothing locked in yet from the prior turns. Going wide with ${pick} to cover a different cluster of common letters.`;
+    }
+    return { reasoning, guess: pick };
 }
 
 // ---------------------------------------------------------------------
